@@ -1,27 +1,63 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useImperativeHandle } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrafficData } from '@/services/trafficService';
-import { MapIcon } from 'lucide-react';
+import { MapIcon, AlertCircleIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface TrafficMapProps {
   trafficData: TrafficData[];
   title?: string;
+  mapRef?: React.RefObject<any>;
 }
 
-const TrafficMap: React.FC<TrafficMapProps> = ({ trafficData, title = "Indore Traffic Map" }) => {
+const TrafficMap: React.FC<TrafficMapProps> = ({ 
+  trafficData, 
+  title = "Indore Traffic Map",
+  mapRef
+}) => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
+  const mapInstance = useRef<mapboxgl.Map | null>(null);
+  const [mapboxToken, setMapboxToken] = React.useState<string | null>(
+    localStorage.getItem('mapbox_token')
+  );
+  const [showTokenInput, setShowTokenInput] = React.useState(!mapboxToken);
 
-  useEffect(() => {
+  // Create the mapRef functions for external control
+  useImperativeHandle(mapRef, () => ({
+    flyTo: (location: { lat: number, lng: number }) => {
+      if (mapInstance.current) {
+        mapInstance.current.flyTo({
+          center: [location.lng, location.lat],
+          zoom: 14,
+          essential: true
+        });
+      }
+    }
+  }));
+
+  const handleTokenSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const token = (form.elements.namedItem('token') as HTMLInputElement).value;
+    
+    if (token) {
+      localStorage.setItem('mapbox_token', token);
+      setMapboxToken(token);
+      setShowTokenInput(false);
+      initializeMap(token);
+    }
+  };
+
+  const initializeMap = (token: string) => {
     if (!mapContainer.current) return;
 
-    // Initialize map - Replace with your Mapbox token
-    mapboxgl.accessToken = 'YOUR_MAPBOX_TOKEN';
+    // Initialize map with the token
+    mapboxgl.accessToken = token;
     
-    map.current = new mapboxgl.Map({
+    mapInstance.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v11',
       center: [75.8577, 22.7196], // Indore coordinates
@@ -29,16 +65,16 @@ const TrafficMap: React.FC<TrafficMapProps> = ({ trafficData, title = "Indore Tr
     });
 
     // Add navigation controls
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    return () => {
-      map.current?.remove();
-    };
-  }, []);
+    // Add traffic data when map is loaded
+    mapInstance.current.on('load', () => {
+      updateTrafficMarkers();
+    });
+  };
 
-  // Update markers when traffic data changes
-  useEffect(() => {
-    if (!map.current) return;
+  const updateTrafficMarkers = () => {
+    if (!mapInstance.current) return;
 
     // Remove existing markers
     const markers = document.getElementsByClassName('mapboxgl-marker');
@@ -46,7 +82,7 @@ const TrafficMap: React.FC<TrafficMapProps> = ({ trafficData, title = "Indore Tr
       markers[0].remove();
     }
 
-    // Add new markers
+    // Add new markers for traffic data
     trafficData.forEach((data) => {
       const el = document.createElement('div');
       el.className = 'traffic-marker';
@@ -61,12 +97,30 @@ const TrafficMap: React.FC<TrafficMapProps> = ({ trafficData, title = "Indore Tr
           new mapboxgl.Popup({ offset: 25 })
             .setHTML(
               `<h3>${data.roadName}</h3>
-               <p>Speed: ${data.speedKmh} km/h</p>
-               <p>Status: ${data.congestionLevel}</p>`
+              <p>Speed: ${data.speedKmh} km/h</p>
+              <p>Status: ${data.congestionLevel}</p>`
             )
         )
-        .addTo(map.current);
+        .addTo(mapInstance.current);
     });
+  };
+
+  // Initialize map when component mounts or token changes
+  useEffect(() => {
+    if (mapboxToken && !mapInstance.current) {
+      initializeMap(mapboxToken);
+    }
+    
+    return () => {
+      mapInstance.current?.remove();
+    };
+  }, [mapboxToken]);
+
+  // Update markers when traffic data changes
+  useEffect(() => {
+    if (mapInstance.current && mapInstance.current.loaded()) {
+      updateTrafficMarkers();
+    }
   }, [trafficData]);
 
   const getCongestionColor = (data: TrafficData) => {
@@ -79,7 +133,7 @@ const TrafficMap: React.FC<TrafficMapProps> = ({ trafficData, title = "Indore Tr
       default: return '#71717a';
     }
   };
-  
+
   return (
     <Card className="h-full">
       <div className="p-4 border-b flex items-center justify-between">
@@ -87,11 +141,49 @@ const TrafficMap: React.FC<TrafficMapProps> = ({ trafficData, title = "Indore Tr
           <MapIcon className="h-5 w-5 text-primary mr-2" />
           <h3 className="font-medium text-lg">{title}</h3>
         </div>
+        {trafficData.length > 0 && (
+          <Badge variant="outline">{trafficData.length} segments</Badge>
+        )}
       </div>
       <CardContent className="p-4">
-        <div className="relative w-full h-[400px] rounded-md overflow-hidden">
-          <div ref={mapContainer} className="absolute inset-0" />
-        </div>
+        {showTokenInput ? (
+          <div className="bg-muted p-4 rounded-md">
+            <div className="flex items-center mb-3">
+              <AlertCircleIcon className="h-5 w-5 text-yellow-500 mr-2" />
+              <h3 className="font-medium">Mapbox Token Required</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Please enter your Mapbox public token to display the map. You can get one at{' '}
+              <a 
+                href="https://mapbox.com" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                mapbox.com
+              </a>
+            </p>
+            <form onSubmit={handleTokenSubmit} className="space-y-2">
+              <input
+                type="text"
+                name="token"
+                placeholder="pk.eyJ1IjoieW91..."
+                className="w-full p-2 border rounded"
+                required
+              />
+              <button
+                type="submit"
+                className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 w-full"
+              >
+                Set Token
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div className="relative w-full h-[400px] rounded-md overflow-hidden">
+            <div ref={mapContainer} className="absolute inset-0" />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

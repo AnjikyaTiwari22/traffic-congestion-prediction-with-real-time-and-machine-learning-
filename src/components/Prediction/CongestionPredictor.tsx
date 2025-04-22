@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { 
   getPredictedTrafficData, 
   TrafficData, 
-  CongestionLevel 
+  CongestionLevel,
+  getRouteTrafficData
 } from '@/services/trafficService';
 import { 
   getPredictionConfidence, 
@@ -17,16 +18,33 @@ import {
 import { TrendingUpIcon, TrendingDownIcon, GaugeIcon } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
-const CongestionPredictor: React.FC = () => {
+interface CongestionPredictorProps {
+  selectedRoute?: { source: string; destination: string } | null;
+}
+
+const CongestionPredictor: React.FC<CongestionPredictorProps> = ({ selectedRoute }) => {
   const [predictionHours, setPredictionHours] = useState(1);
-  const [predictedData, setPredictedData] = useState<TrafficData[]>(
-    getPredictedTrafficData(1)
-  );
+  const [predictedData, setPredictedData] = useState<TrafficData[]>([]);
+  
+  useEffect(() => {
+    // Update predictions when route or time changes
+    if (selectedRoute) {
+      // Get route-specific predictions
+      const routeData = getRouteTrafficData(
+        selectedRoute.source, 
+        selectedRoute.destination, 
+        predictionHours
+      );
+      setPredictedData(routeData);
+    } else {
+      // Get general predictions
+      setPredictedData(getPredictedTrafficData(predictionHours));
+    }
+  }, [predictionHours, selectedRoute]);
   
   const handlePredictionChange = (value: number[]) => {
     const hours = value[0];
     setPredictionHours(hours);
-    setPredictedData(getPredictedTrafficData(hours));
   };
   
   const confidence = getPredictionConfidence(predictionHours);
@@ -38,13 +56,16 @@ const CongestionPredictor: React.FC = () => {
     return acc;
   }, {} as Record<CongestionLevel, number>);
   
-  const dominantLevel = Object.entries(congestionCounts)
-    .sort((a, b) => b[1] - a[1])[0][0] as CongestionLevel;
+  const dominantLevel = Object.entries(congestionCounts).length > 0
+    ? Object.entries(congestionCounts).sort((a, b) => b[1] - a[1])[0][0] as CongestionLevel
+    : 'MODERATE' as CongestionLevel;
   
   // Average speed
-  const avgSpeed = Math.round(
-    predictedData.reduce((sum, item) => sum + item.speedKmh, 0) / predictedData.length
-  );
+  const avgSpeed = predictedData.length > 0
+    ? Math.round(
+        predictedData.reduce((sum, item) => sum + item.speedKmh, 0) / predictedData.length
+      )
+    : 0;
   
   const predictionDate = new Date();
   predictionDate.setHours(predictionDate.getHours() + predictionHours);
@@ -54,7 +75,9 @@ const CongestionPredictor: React.FC = () => {
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium flex items-center">
           <GaugeIcon className="h-5 w-5 mr-2 text-primary" />
-          Traffic Prediction Engine
+          {selectedRoute 
+            ? "Route Traffic Prediction" 
+            : "Traffic Prediction Engine"}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -79,6 +102,17 @@ const CongestionPredictor: React.FC = () => {
               <span>12 hours</span>
             </div>
           </div>
+          
+          {selectedRoute && (
+            <div className="bg-muted/50 p-2 rounded-md">
+              <div className="text-xs text-muted-foreground font-medium">
+                Route Analysis
+              </div>
+              <div className="text-sm">
+                {selectedRoute.source} → {selectedRoute.destination}
+              </div>
+            </div>
+          )}
           
           <div className="bg-muted p-4 rounded-md">
             <div className="flex justify-between items-center mb-3">

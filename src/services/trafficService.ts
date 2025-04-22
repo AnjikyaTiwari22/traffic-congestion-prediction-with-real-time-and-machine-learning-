@@ -176,3 +176,75 @@ export const getTrafficStats = () => {
     totalRoads: data.length
   };
 };
+
+export function getRouteTrafficData(source: string, destination: string, hours: number = 0): TrafficData[] {
+  // Generate fake route data between source and destination
+  // This would be replaced with real API calls in a production app
+  
+  const roadNames = [
+    "MG Road",
+    "Ring Road",
+    "AB Road",
+    "Khandwa Road",
+    "Bombay Hospital Road",
+    "Indore-Ujjain Road",
+    "Airport Road",
+    "Annapurna Road",
+    "Patnipura Road",
+    "Bhawarkuan Main Road"
+  ];
+  
+  // Generate 5-10 points along a simulated route
+  const numPoints = 5 + Math.floor(Math.random() * 6);
+  const result: TrafficData[] = [];
+  
+  // Base coordinates for Indore
+  const baseLat = 22.7196;
+  const baseLng = 75.8577;
+  
+  // Create variation along a "route"
+  let currentLat = baseLat - 0.02 + Math.random() * 0.04;
+  let currentLng = baseLng - 0.02 + Math.random() * 0.04;
+  
+  for (let i = 0; i < numPoints; i++) {
+    // Move in a generally consistent direction to simulate a route
+    currentLat += (Math.random() * 0.01) - 0.005;
+    currentLng += (Math.random() * 0.01) - 0.005;
+    
+    // Different congestion levels based on time prediction
+    // For future predictions, we add more severe congestion levels
+    let congestionLevels: CongestionLevel[];
+    if (hours > 8) {
+      congestionLevels = ["MODERATE", "HEAVY", "SEVERE"];
+    } else if (hours > 4) {
+      congestionLevels = ["LIGHT", "MODERATE", "HEAVY"];
+    } else if (hours > 0) {
+      congestionLevels = ["FREE", "LIGHT", "MODERATE"];
+    } else {
+      congestionLevels = ["FREE", "LIGHT", "MODERATE", "HEAVY", "SEVERE"];
+    }
+    
+    const congestionLevel = congestionLevels[Math.floor(Math.random() * congestionLevels.length)];
+    const speedMap: Record<CongestionLevel, number> = {
+      "FREE": 50 + Math.random() * 20,
+      "LIGHT": 35 + Math.random() * 15,
+      "MODERATE": 20 + Math.random() * 15,
+      "HEAVY": 10 + Math.random() * 10,
+      "SEVERE": 5 + Math.random() * 5
+    };
+    
+    result.push({
+      id: `route-${source}-${destination}-${i}`,
+      roadName: roadNames[Math.floor(Math.random() * roadNames.length)],
+      location: {
+        lat: currentLat,
+        lng: currentLng
+      },
+      congestionLevel,
+      speedKmh: Math.round(speedMap[congestionLevel]),
+      timestamp: new Date().getTime()
+    });
+  }
+  
+  return result;
+}
