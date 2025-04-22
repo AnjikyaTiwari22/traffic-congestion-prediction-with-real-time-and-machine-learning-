@@ -12,9 +12,11 @@ import {
   ResponsiveContainer,
   Legend,
   BarChart,
-  Bar
+  Bar,
+  TooltipProps
 } from 'recharts';
 import { getHistoricalTrafficData, CongestionLevel } from '@/services/trafficService';
+import { ValueType } from 'recharts/types/component/DefaultTooltipContent';
 
 const TrafficTrends: React.FC = () => {
   // Process historical data for charts
@@ -93,7 +95,12 @@ const TrafficTrends: React.FC = () => {
                   }}
                 />
                 <Tooltip 
-                  formatter={(value) => [`${value} km/h`, 'Avg. Speed']}
+                  formatter={(value: ValueType) => {
+                    if (typeof value === 'number') {
+                      return [`${value} km/h`, 'Avg. Speed'];
+                    }
+                    return [`${value}`, 'Avg. Speed'];
+                  }}
                   labelFormatter={(label) => `Time: ${label}`}
                 />
                 <Line
@@ -121,7 +128,12 @@ const TrafficTrends: React.FC = () => {
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip 
-                  formatter={(value) => [`${Math.round(value)}%`, '']}
+                  formatter={(value: ValueType) => {
+                    if (typeof value === 'number') {
+                      return [`${Math.round(value)}%`, ''];
+                    }
+                    return [`${value}`, ''];
+                  }}
                   labelFormatter={(label) => `Time: ${label}`}
                 />
                 <Legend />
