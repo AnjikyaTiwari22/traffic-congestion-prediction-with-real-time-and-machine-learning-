@@ -7,6 +7,7 @@ import {
 import Header from '@/components/Layout/Header';
 import TrafficMap from '@/components/Map/TrafficMap';
 import CongestionPredictor from '@/components/Prediction/CongestionPredictor';
+import LocationSearch from '@/components/Search/LocationSearch';
 import TrafficTrends from '@/components/Charts/TrafficTrends';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,6 @@ const Index = () => {
   
   useEffect(() => {
     fetchTrafficData();
-    
     const intervalId = setInterval(() => {
       fetchTrafficData();
     }, 60000);
@@ -32,17 +32,22 @@ const Index = () => {
   
   const fetchTrafficData = () => {
     setIsLoading(true);
-    
     setTimeout(() => {
       const newData = getCurrentTrafficData();
       setTrafficData(newData);
       setLastUpdated(new Date());
       setIsLoading(false);
-      
       toast("Traffic data updated", {
         description: `Latest data loaded at ${new Date().toLocaleTimeString()}`,
       });
     }, 800);
+  };
+
+  const handleLocationSearch = (source: string, destination: string) => {
+    toast("Predicting route traffic", {
+      description: `Analyzing traffic from ${source} to ${destination}`,
+    });
+    // In a real app, this would make an API call to get route predictions
   };
   
   const trafficStats = getTrafficStats();
@@ -74,6 +79,10 @@ const Index = () => {
               Refresh
             </Button>
           </div>
+        </div>
+
+        <div className="mb-6">
+          <LocationSearch onSearch={handleLocationSearch} />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
