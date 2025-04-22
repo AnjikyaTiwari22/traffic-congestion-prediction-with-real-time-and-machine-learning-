@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   getCurrentTrafficData, 
@@ -21,11 +20,9 @@ const Index = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState(true);
   
-  // Load traffic data on mount and setup refresh interval
   useEffect(() => {
     fetchTrafficData();
     
-    // Refresh every 60 seconds
     const intervalId = setInterval(() => {
       fetchTrafficData();
     }, 60000);
@@ -36,7 +33,6 @@ const Index = () => {
   const fetchTrafficData = () => {
     setIsLoading(true);
     
-    // Simulate API delay
     setTimeout(() => {
       const newData = getCurrentTrafficData();
       setTrafficData(newData);
@@ -57,12 +53,11 @@ const Index = () => {
       <Header />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Dashboard Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Traffic Prediction Dashboard</h1>
+            <h1 className="text-2xl font-bold text-foreground">Indore Traffic Prediction</h1>
             <p className="text-muted-foreground mt-1">
-              Real-time traffic analysis and ML-powered congestion prediction
+              Real-time traffic analysis for Indore city roads
             </p>
           </div>
           
@@ -81,7 +76,6 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card>
             <CardContent className="p-4 flex items-center">
@@ -129,7 +123,6 @@ const Index = () => {
           </Card>
         </div>
         
-        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <TrafficMap trafficData={trafficData} />
@@ -139,7 +132,6 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Charts */}
         <div className="mt-6">
           <TrafficTrends />
         </div>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrafficData, CongestionLevel } from '@/services/trafficService';
@@ -10,7 +9,7 @@ interface TrafficMapProps {
   title?: string;
 }
 
-const TrafficMap: React.FC<TrafficMapProps> = ({ trafficData, title = "Live Traffic Map" }) => {
+const TrafficMap: React.FC<TrafficMapProps> = ({ trafficData, title = "Indore Traffic Map" }) => {
   // In a real app, this would use an actual map library like Mapbox, Google Maps, etc.
   // For this demo, we'll create a simplified visual representation
   

@@ -1,4 +1,3 @@
-
 // Types for traffic data
 export interface TrafficData {
   id: string;
@@ -27,16 +26,16 @@ interface TrafficSnapshot {
 
 // Mock data generator for current traffic
 export const getCurrentTrafficData = (): TrafficData[] => {
-  // For demo purposes, we'll generate random traffic data
+  // Major roads in Indore
   const locations = [
-    { roadName: "Main Street", lat: 40.7128, lng: -74.0060 },
-    { roadName: "Broadway", lat: 40.7589, lng: -73.9851 },
-    { roadName: "Fifth Avenue", lat: 40.7536, lng: -73.9831 },
-    { roadName: "Park Avenue", lat: 40.7539, lng: -73.9742 },
-    { roadName: "Lexington Avenue", lat: 40.7528, lng: -73.9725 },
-    { roadName: "Madison Avenue", lat: 40.7517, lng: -73.9785 },
-    { roadName: "Seventh Avenue", lat: 40.7631, lng: -73.9803 },
-    { roadName: "Eighth Avenue", lat: 40.7590, lng: -73.9845 }
+    { roadName: "MG Road", lat: 22.7196, lng: 75.8577 },
+    { roadName: "AB Road", lat: 22.7244, lng: 75.8839 },
+    { roadName: "Ring Road", lat: 22.7468, lng: 75.8980 },
+    { roadName: "LIG Link Road", lat: 22.7531, lng: 75.8937 },
+    { roadName: "Vijay Nagar Road", lat: 22.7533, lng: 75.8937 },
+    { roadName: "Race Course Road", lat: 22.7234, lng: 75.8825 },
+    { roadName: "Palasia Road", lat: 22.7244, lng: 75.8819 },
+    { roadName: "Sapna Sangeeta Road", lat: 22.7269, lng: 75.8831 }
   ];
 
   return locations.map((loc, index) => {
