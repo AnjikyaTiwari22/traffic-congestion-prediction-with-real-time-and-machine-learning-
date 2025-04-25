@@ -25,7 +25,6 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
   );
   const [showTokenInput, setShowTokenInput] = React.useState(!mapboxToken);
 
-  // Create the mapRef functions for external control
   useImperativeHandle(mapRef, () => ({
     flyTo: (location: { lat: number, lng: number }) => {
       if (mapInstance.current) {
@@ -54,7 +53,6 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
   const initializeMap = (token: string) => {
     if (!mapContainer.current) return;
 
-    // Initialize map with the token
     mapboxgl.accessToken = token;
     
     mapInstance.current = new mapboxgl.Map({
@@ -64,10 +62,8 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
       zoom: 12
     });
 
-    // Add navigation controls
     mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    // Add traffic data when map is loaded
     mapInstance.current.on('load', () => {
       updateTrafficMarkers();
     });
@@ -101,11 +97,10 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
               <p>Status: ${data.congestionLevel}</p>`
             )
         )
-        .addTo(mapInstance.current);
+        .addTo(mapInstance.current!);
     });
   };
 
-  // Initialize map when component mounts or token changes
   useEffect(() => {
     if (mapboxToken && !mapInstance.current) {
       initializeMap(mapboxToken);
@@ -116,7 +111,6 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
     };
   }, [mapboxToken]);
 
-  // Update markers when traffic data changes
   useEffect(() => {
     if (mapInstance.current && mapInstance.current.loaded()) {
       updateTrafficMarkers();

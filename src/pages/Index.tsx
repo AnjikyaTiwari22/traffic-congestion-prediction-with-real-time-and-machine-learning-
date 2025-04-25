@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   getCurrentTrafficData, 
@@ -48,14 +47,11 @@ const Index = () => {
   };
 
   const handleLocationSearch = (source: string, destination: string) => {
-    // Store the selected route
     setSelectedRoute({ source, destination });
     
-    // Get specific route traffic data
     const routeTrafficData = getRouteTrafficData(source, destination);
     setTrafficData(routeTrafficData);
     
-    // Center map on the route (first point of route)
     if (routeTrafficData.length > 0 && mapRef.current) {
       const centerPoint = routeTrafficData[0].location;
       mapRef.current.flyTo(centerPoint);
