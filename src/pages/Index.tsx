@@ -1,77 +1,189 @@
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  getCurrentTrafficData, 
+  getTrafficStats,
+  getRouteTrafficData,
+  TrafficData
+} from '@/services/trafficService';
+import Header from '@/components/Layout/Header';
+import TrafficMap from '@/components/Map/TrafficMap';
+import CongestionPredictor from '@/components/Prediction/CongestionPredictor';
+import LocationSearch from '@/components/Search/LocationSearch';
+import TrafficTrends from '@/components/Charts/TrafficTrends';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { RefreshCwIcon, DatabaseIcon, SignalIcon } from 'lucide-react';
+import { calculateHistoricalAccuracy } from '@/utils/predictionUtils';
+import { toast } from 'sonner';
 
 const Index = () => {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [traffic, setTraffic] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // Simulated traffic prediction function (replace with real API if available)
-  const predictTraffic = async () => {
-    if (!from || !to) {
-      setTraffic("Please enter both locations.");
-      return;
-    }
-    setLoading(true);
-    setTraffic(null);
-
-    // Fake a delay for "prediction"
+  const [trafficData, setTrafficData] = useState<TrafficData[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedRoute, setSelectedRoute] = useState<{source: string, destination: string} | null>(null);
+  const mapRef = useRef<any>(null);
+  
+  useEffect(() => {
+    fetchTrafficData();
+    const intervalId = setInterval(() => {
+      fetchTrafficData();
+    }, 60000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
+  
+  const fetchTrafficData = () => {
+    setIsLoading(true);
     setTimeout(() => {
-      // Fake congestion levels
-      const predictions = [
-        "Light traffic (green)",
-        "Moderate traffic (yellow)",
-        "Heavy traffic (orange)",
-        "Severe traffic (red)",
-      ];
-      const trafficLevel = predictions[Math.floor(Math.random() * predictions.length)];
-      setTraffic(`Traffic prediction from "${from}" to "${to}": ${trafficLevel}`);
-      setLoading(false);
-    }, 1100);
+      const newData = getCurrentTrafficData();
+      setTrafficData(newData);
+      setLastUpdated(new Date());
+      setIsLoading(false);
+      toast("Traffic data updated", {
+        description: `Latest data loaded at ${new Date().toLocaleTimeString()}`,
+      });
+    }, 800);
   };
 
+  const handleLocationSearch = (source: string, destination: string) => {
+    // Store the selected route
+    setSelectedRoute({ source, destination });
+    
+    // Get specific route traffic data
+    const routeTrafficData = getRouteTrafficData(source, destination);
+    setTrafficData(routeTrafficData);
+    
+    // Center map on the route (first point of route)
+    if (routeTrafficData.length > 0 && mapRef.current) {
+      const centerPoint = routeTrafficData[0].location;
+      mapRef.current.flyTo(centerPoint);
+    }
+    
+    toast("Route traffic predicted", {
+      description: `Analyzing traffic from ${source} to ${destination}`,
+    });
+  };
+  
+  const trafficStats = getTrafficStats();
+  const modelAccuracy = calculateHistoricalAccuracy();
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white shadow p-8 rounded-xl w-full max-w-md flex flex-col items-center space-y-6">
-        <h1 className="text-3xl font-bold mb-2 text-center">Traffic Predictor for Indore</h1>
-        <div className="w-full">
-          <label className="block text-sm font-medium mb-1">From</label>
-          <input
-            className="w-full border border-gray-300 rounded px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            type="text"
-            placeholder="Start location"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-          />
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Indore Traffic Prediction</h1>
+            <p className="text-muted-foreground mt-1">
+              Real-time traffic analysis for Indore city roads
+            </p>
+          </div>
+          
+          <div className="mt-4 md:mt-0 flex items-center">
+            <span className="text-sm text-muted-foreground mr-2">
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </span>
+            <Button 
+              size="sm" 
+              onClick={fetchTrafficData}
+              disabled={isLoading}
+            >
+              <RefreshCwIcon className={`h-4 w-4 mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
-        <div className="w-full">
-          <label className="block text-sm font-medium mb-1">To</label>
-          <input
-            className="w-full border border-gray-300 rounded px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            type="text"
-            placeholder="Destination"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-          />
+        <div className="mb-6">
+          <LocationSearch onSearch={handleLocationSearch} />
         </div>
-
-        <Button
-          className="w-full mt-2"
-          onClick={predictTraffic}
-          disabled={loading}
-        >
-          {loading ? "Predicting..." : "Predict Traffic"}
-        </Button>
-
-        {traffic && (
-          <div className="w-full bg-gray-100 mt-4 px-4 py-3 rounded text-center text-sm text-gray-700">
-            {traffic}
+        
+        {selectedRoute && (
+          <div className="mb-4">
+            <Card className="bg-muted/50">
+              <CardContent className="p-3 flex items-center justify-between">
+                <div className="flex items-center">
+                  <Badge variant="outline" className="mr-2">Active Route</Badge>
+                  <span className="text-sm font-medium">{selectedRoute.source} → {selectedRoute.destination}</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setSelectedRoute(null);
+                    fetchTrafficData();
+                  }}
+                >
+                  Clear
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         )}
-      </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4 flex items-center">
+              <div className="rounded-full bg-primary/10 p-3 mr-4">
+                <SignalIcon className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Average Speed</p>
+                <div className="flex items-baseline">
+                  <h3 className="text-2xl font-bold">{Math.round(trafficStats.avgSpeed)}</h3>
+                  <span className="ml-1 text-sm text-muted-foreground">km/h</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4 flex items-center">
+              <div className="rounded-full bg-secondary/10 p-3 mr-4">
+                <DatabaseIcon className="h-6 w-6 text-secondary-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">ML Model Accuracy</p>
+                <div className="flex items-baseline">
+                  <h3 className="text-2xl font-bold">{Math.round(modelAccuracy * 100)}%</h3>
+                  <Badge className="ml-2" variant="outline">Based on historical data</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4 flex items-center">
+              <div className="rounded-full bg-muted p-3 mr-4">
+                <SignalIcon className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Monitored Road Segments</p>
+                <div className="flex items-baseline">
+                  <h3 className="text-2xl font-bold">{trafficStats.totalRoads}</h3>
+                  <span className="ml-1 text-sm text-muted-foreground">segments</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <TrafficMap trafficData={trafficData} mapRef={mapRef} />
+          </div>
+          <div>
+            <CongestionPredictor selectedRoute={selectedRoute} />
+          </div>
+        </div>
+        
+        <div className="mt-6">
+          <TrafficTrends />
+        </div>
+      </main>
     </div>
   );
 };
